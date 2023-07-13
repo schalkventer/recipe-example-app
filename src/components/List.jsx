@@ -62,9 +62,9 @@ export const List = (props) => {
   const [category, setCategory] = useState("All");
   const [ordering, setOrdering] = useState("title");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [remaining, setRemaining] = useState(null);
-  const [userName, setUserName] = useState(null);
+  const [user, setUser] = useState(undefined);
 
   const [selected, setSelected] = useState(null);
   const [phase, setPhase] = useState("LOADING");
@@ -79,8 +79,14 @@ export const List = (props) => {
     setRemaining(response.remaining < 0 ? 0 : response.remaining);
   };
 
+  const checkUser = async () => {
+    const { data } = await supabase.auth.getSession();
+    setUser(data.session);
+  };
+
   useMount(async () => {
     updateRecipes({ page, category, ordering, search, target: "LOADING" });
+    checkUser();
   });
 
   const handleLoadMore = () => {
@@ -89,6 +95,7 @@ export const List = (props) => {
     updateRecipes({ page, category, ordering, search });
   };
 
+  if (phase === "ACCOUNT") return <slots.Account />;
   if (phase === "LOADING") return <div>Loading...</div>;
   if (selected) return <slots.Selected id={selected} />;
 
@@ -109,58 +116,29 @@ export const List = (props) => {
     });
   };
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    const form = new FormData(event.target);
-    const response = Object.fromEntries(form);
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: response.email,
-      password: response.password,
-    });
-
-    console.log({ data, error });
-  };
-
-  const handleCreate = async (event) => {
-    event.preventDefault();
-    const form = new FormData(event.target);
-    const response = Object.fromEntries(form);
-
-    const { data, error } = await supabase.auth.signUp({
-      email: response.email,
-      password: response.password,
-      options: {
-        data: {
-          name: response.name,
-        },
-      },
-    });
-
-    console.log({ data, error });
-  };
+  console.log(user);
 
   return (
     <div>
-      <h1>User</h1>
-      <span>{userName}</span>
-
-      <form onSubmit={handleLogin}>
-        <input name="email" placeholder="Email" />
-        <input name="password" type="password" placeholder="Password" />
-        <button type="submit">LOGIN</button>
-      </form>
+      <h1>Recipes</h1>
 
       <hr />
+      {user === undefined && <div>Loading...</div>}
 
-      <form onSubmit={handleCreate}>
-        <input name="name" placeholder="Name" />
-        <input name="email" placeholder="Email" />
-        <input name="password" type="password" placeholder="Password" />
-        <button type="submit">CREATE ACCOUTN</button>
-      </form>
+      {user === null && (
+        <div>
+          Not logged in
+          <button onClick={() => setPhase("ACCOUNT")}>LOGIN NOW</button>
+        </div>
+      )}
 
-      <h1>Recipes</h1>
+      {user && (
+        <div>
+          {user.user.user_metadata.name} ({user.user.email}){" "}
+          <button onClick={() => supabase.auth.signOut()}>LOGOUT</button>
+        </div>
+      )}
+      <hr />
 
       <form onSubmit={handleSumbit} style={{ background: "#CCC" }}>
         <select name="category" defaultValue={category}>

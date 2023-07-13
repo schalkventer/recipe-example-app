@@ -1,4 +1,4 @@
-import { List, Selected } from "./components";
+import { List, Selected, Account } from "./components";
 import { supabase } from "./modules";
 
 export const App = () => {
@@ -7,6 +7,7 @@ export const App = () => {
       supabase={supabase}
       slots={{
         Selected,
+        Account,
       }}
     />
   );
